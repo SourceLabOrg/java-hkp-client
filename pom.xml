@@ -6,7 +6,7 @@
 
     <groupId>org.sourcelab</groupId>
     <artifactId>java-hkp-client</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1-SNAPSHOT</version>
 
     <!-- Require Maven 3.3.9 -->
     <prerequisites>
@@ -185,11 +185,11 @@
                 <configuration>
                     <header>LICENSE.txt</header>
                     <excludes>
-                        <exclude>**/.md</exclude>
-                        <exclude>**/.bak</exclude>
-                        <exclude>**.yml</exclude>
-                        <exclude>**.yaml</exclude>
-                        <exclude>**.xml</exclude>
+                        <exclude>**/*.md</exclude>
+                        <exclude>**/*.bak</exclude>
+                        <exclude>**/*.yml</exclude>
+                        <exclude>**/*.yaml</exclude>
+                        <exclude>**/*.xml</exclude>
                         <exclude>build/**</exclude>
                         <exclude>src/test/resources/**</exclude>
                         <exclude>src/main/resources/**</exclude>
