@@ -16,7 +16,7 @@
     <!-- Module Description and Ownership -->
     <name>Http KeyServer Protocol Client for Java</name>
     <description>A client for talking to PGP Key Servers using HKP (Http KeyServer Protocol).  Defined by RFC https://tools.ietf.org/html/draft-shaw-openpgp-hkp-00 </description>
-    <url>https://github.com/sourcelaborg/kafka-connect-client</url>
+    <url>https://github.com/SourceLabOrg/java-hkp-client</url>
     <developers>
         <developer>
             <name>Stephen Powis</name>
@@ -38,7 +38,7 @@
     <scm>
         <connection>scm:git:git://github.com/sourcelaborg/java-hkp-client.git</connection>
         <developerConnection>scm:git:ssh://github.com:sourcelaborg/java-hkp-client.git</developerConnection>
-        <url>https://github.com/SourceLabOrg/java-hkp-client/tree/master</url>
+        <url>https://github.com/SourceLabOrg/java-hkp-client/tree/main</url>
     </scm>
 
     <!-- Module Properties -->
