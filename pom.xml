@@ -187,9 +187,9 @@
                     <excludes>
                         <exclude>**/.md</exclude>
                         <exclude>**/.bak</exclude>
-                        <exclude>**.yml</exclude>
-                        <exclude>**.yaml</exclude>
-                        <exclude>**.xml</exclude>
+                        <exclude>**/.yml</exclude>
+                        <exclude>**/.yaml</exclude>
+                        <exclude>**/.xml</exclude>
                         <exclude>build/**</exclude>
                         <exclude>src/test/resources/**</exclude>
                         <exclude>src/main/resources/**</exclude>
