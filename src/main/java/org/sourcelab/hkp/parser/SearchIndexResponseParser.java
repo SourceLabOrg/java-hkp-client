@@ -83,8 +83,8 @@ public class SearchIndexResponseParser implements ResponseParser<SearchIndexResp
             .withKeyId(fields.get(1))
             .withAlgo(Integer.parseInt(fields.get(2)))
             .withKeyLen(Integer.parseInt(fields.get(3)))
-            .withCreationDate(Long.parseLong(fields.get(4)))
-            .withExpirationDate(Long.parseLong(fields.get(5)))
+            .withCreationDate(fields.get(4))
+            .withExpirationDate(fields.get(5))
             .withFlags(fields.get(6))
             .build();
     }
