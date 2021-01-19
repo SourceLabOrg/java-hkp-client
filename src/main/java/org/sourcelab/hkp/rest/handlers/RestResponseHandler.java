@@ -17,10 +17,11 @@
 
 package org.sourcelab.hkp.rest.handlers;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ResponseHandler;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sourcelab.hkp.rest.RestResponse;
@@ -30,12 +31,12 @@ import java.io.IOException;
 /**
  * Handles parsing a response to RestResponse object.
  */
-public class RestResponseHandler implements ResponseHandler<RestResponse> {
+public class RestResponseHandler implements HttpClientResponseHandler<RestResponse> {
     private static final Logger logger = LoggerFactory.getLogger(RestResponseHandler.class);
 
     @Override
-    public RestResponse handleResponse(final HttpResponse response) {
-        final int statusCode = response.getStatusLine().getStatusCode();
+    public RestResponse handleResponse(final ClassicHttpResponse response) {
+        final int statusCode = response.getCode();
 
         try {
             final HttpEntity entity = response.getEntity();
@@ -46,7 +47,7 @@ public class RestResponseHandler implements ResponseHandler<RestResponse> {
 
             // Construct return object
             return new RestResponse(responseStr, statusCode);
-        } catch (final IOException exception) {
+        } catch (final IOException | ParseException exception) {
             logger.error("Failed to read entity: {}", exception.getMessage(), exception);
             throw new RuntimeException("Failed to read entity", exception);
         }

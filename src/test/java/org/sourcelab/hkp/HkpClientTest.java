@@ -40,13 +40,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class HkpClientTest {
     private static final Logger logger = LoggerFactory.getLogger(HkpClientTest.class);
 
+    /**
+     * Instance under test.
+     */
     private static HkpClient client;
 
     @BeforeAll
     static void setup() {
         client = new HkpClient(Configuration.newBuilder()
-            .withKeyServerHost("http://pool.sks-keyservers.net")
-            //.withKeyServerHost("http://hkps.pool.sks-keyservers.net")
+            //.withKeyServerHost("http://pool.sks-keyservers.net")
+            .withKeyServerHost("https://hkps.pool.sks-keyservers.net")
+            .withIgnoreInvalidSslCertificates()
         );
     }
 
@@ -59,6 +63,11 @@ class HkpClientTest {
     void test() {
         final SearchIndexResponse result = client.search(new SearchRequest("stephen.powis@gmail.com"));
         logger.info("Result: {}", result);
+        assertNotNull(result);
+
+        assertEquals(3, result.getCount());
+        assertEquals(1, result.getVersion());
+        assertEquals(3, result.getEntries().size());
     }
 
     @Test
@@ -72,6 +81,9 @@ class HkpClientTest {
         final Optional<PgpPublicKey> result = client.get(new GetRequest("0x92E73960FC59970DFB12F0146D712A2D27F74CE9"));
         logger.info("Result: {}", result.get());
         assertTrue(result.isPresent());
+
+        final PgpPublicKey key = result.get();
+        assertNotNull(key.getPublicKey());
     }
 
     @Test
@@ -85,7 +97,7 @@ class HkpClientTest {
     void getByKey_invalidKey_500Error() {
         try {
             client.get(new GetRequest("0xZEROC00l"));
-        } catch (InvalidRequestException exception) {
+        } catch (final InvalidRequestException exception) {
             logger.info("Result: {}", exception);
             assertEquals(500, exception.getErrorCode());
             assertNotNull(exception.getMessage());

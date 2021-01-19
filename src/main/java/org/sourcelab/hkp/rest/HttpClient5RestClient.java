@@ -17,30 +17,32 @@
 
 package org.sourcelab.hkp.rest;
 
-import org.apache.http.HttpHost;
-import org.apache.http.NameValuePair;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.AuthCache;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.ResponseHandler;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.conn.socket.LayeredConnectionSocketFactory;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.client.BasicAuthCache;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.ssl.SSLContexts;
+import org.apache.hc.client5.http.ClientProtocolException;
+import org.apache.hc.client5.http.auth.AuthCache;
+import org.apache.hc.client5.http.auth.AuthScope;
+import org.apache.hc.client5.http.auth.CredentialsStore;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.auth.BasicAuthCache;
+import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
+import org.apache.hc.client5.http.impl.auth.BasicScheme;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.io.HttpClientConnectionManager;
+import org.apache.hc.client5.http.protocol.HttpClientContext;
+import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactoryBuilder;
+import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.ssl.TLS;
+import org.apache.hc.core5.net.URIBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
+import org.apache.hc.core5.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sourcelab.hkp.ConnectionFailedException;
@@ -55,7 +57,6 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.net.SocketException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -64,17 +65,13 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * RestClient implementation using HTTPClient.
  */
-public class HttpClientRestClient implements RestClient {
-    private static final Logger logger = LoggerFactory.getLogger(HttpClientRestClient.class);
+public class HttpClient5RestClient implements RestClient {
+    private static final Logger logger = LoggerFactory.getLogger(HttpClient5RestClient.class);
 
     /**
      * Save a copy of the configuration.
@@ -90,7 +87,7 @@ public class HttpClientRestClient implements RestClient {
     /**
      * Constructor.
      */
-    public HttpClientRestClient() {
+    public HttpClient5RestClient() {
     }
 
     /**
@@ -123,23 +120,22 @@ public class HttpClientRestClient implements RestClient {
             hostnameVerifier = NoopHostnameVerifier.INSTANCE;
         } else {
             // Use default implementation
-            hostnameVerifier = SSLConnectionSocketFactory.getDefaultHostnameVerifier();
+            hostnameVerifier = new DefaultHostnameVerifier();
         }
 
         // Allow TLSv1_1 and TLSv1_2 protocols
-        final LayeredConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-            sslcontext,
-            new String[] { "TLSv1.1", "TLSv1.2" },
-            null,
-            hostnameVerifier
-        );
+        final SSLConnectionSocketFactory sslsf = SSLConnectionSocketFactoryBuilder.create()
+            .setSslContext(sslcontext)
+            .setTlsVersions(TLS.V_1_1, TLS.V_1_2)
+            .setHostnameVerifier(hostnameVerifier)
+            .build();
+        final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
+            .setSSLSocketFactory(sslsf)
+            .build();
 
         // Setup client builder
-        final HttpClientBuilder clientBuilder = HttpClientBuilder.create();
-        clientBuilder
-            // Disconnect requests after 120 seconds.
-            .setConnectionTimeToLive(configuration.getRequestTimeoutSecs(), TimeUnit.SECONDS)
-            .setSSLSocketFactory(sslsf);
+        final HttpClientBuilder clientBuilder = HttpClientBuilder.create()
+            .setConnectionManager(cm);
 
         // Define our RequestConfigBuilder
         final RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
@@ -154,15 +150,15 @@ public class HttpClientRestClient implements RestClient {
         if (configuration.hasProxyConfigured()) {
             // Define proxy host
             final HttpHost proxyHost = new HttpHost(
+                configuration.getProxyConfiguration().getScheme(),
                 configuration.getProxyConfiguration().getHost(),
-                configuration.getProxyConfiguration().getPort(),
-                configuration.getProxyConfiguration().getScheme()
+                configuration.getProxyConfiguration().getPort()
             );
 
             // If we have proxy auth enabled
             if (configuration.getProxyConfiguration().isAuthenticationRequired()) {
                 // Create credential provider
-                final CredentialsProvider credsProvider = new BasicCredentialsProvider();
+                final CredentialsStore credsProvider = new BasicCredentialsProvider();
                 credsProvider.setCredentials(
                     new AuthScope(
                         configuration.getProxyConfiguration().getHost(),
@@ -170,16 +166,16 @@ public class HttpClientRestClient implements RestClient {
                     ),
                     new UsernamePasswordCredentials(
                         configuration.getProxyConfiguration().getUsername(),
-                        configuration.getProxyConfiguration().getPassword()
+                        configuration.getProxyConfiguration().getPassword().toCharArray()
                     )
                 );
 
                 // Preemptive load context with authentication.
                 authCache.put(
                     new HttpHost(
+                        configuration.getProxyConfiguration().getScheme(),
                         configuration.getProxyConfiguration().getHost(),
-                        configuration.getProxyConfiguration().getPort(),
-                        configuration.getProxyConfiguration().getScheme()
+                        configuration.getProxyConfiguration().getPort()
                     ),
                     new BasicScheme()
                 );
@@ -190,7 +186,10 @@ public class HttpClientRestClient implements RestClient {
             }
 
             // Attach Proxy to request config builder
-            requestConfigBuilder.setProxy(proxyHost);
+            requestConfigBuilder
+                .setConnectionRequestTimeout(Timeout.ofSeconds(configuration.getRequestTimeoutSecs()))
+                .setConnectTimeout(Timeout.ofSeconds(configuration.getRequestTimeoutSecs()))
+                .setProxy(proxyHost);
 
             // Configure context.
             httpClientContext.setAuthCache(authCache);
@@ -233,8 +232,8 @@ public class HttpClientRestClient implements RestClient {
         if (httpClient != null) {
             try {
                 httpClient.close();
-            } catch (IOException e) {
-                logger.error("Error closing: {}", e.getMessage(), e);
+            } catch (final IOException exception) {
+                logger.error("Error closing: {}", exception.getMessage(), exception);
             }
         }
         httpClient = null;
@@ -250,7 +249,7 @@ public class HttpClientRestClient implements RestClient {
     public RestResponse submitRequest(final Request request) throws RestException {
         try {
             return submitRequest(request, new RestResponseHandler());
-        } catch (IOException exception) {
+        } catch (final IOException exception) {
             throw new RestException(exception.getMessage(), exception);
         }
     }
@@ -262,7 +261,7 @@ public class HttpClientRestClient implements RestClient {
      * @param <T> The return type.
      * @return The parsed API response.
      */
-    private <T> T submitRequest(final Request request, final ResponseHandler<T> responseHandler) throws IOException {
+    private <T> T submitRequest(final Request request, final HttpClientResponseHandler<T> responseHandler) throws IOException {
         final String url = constructApiUrl(request);
         return submitRequest(url, request.getRequestParameters(), responseHandler);
     }
@@ -276,7 +275,7 @@ public class HttpClientRestClient implements RestClient {
      * @return Parsed response.
      * @throws ConnectionFailedException if remote server does not accept connection.
      */
-    private <T> T submitRequest(final String url, final Map<String, String> getParams, final ResponseHandler<T> responseHandler) throws IOException {
+    private <T> T submitRequest(final String url, final Map<String, String> getParams, final HttpClientResponseHandler<T> responseHandler) {
         try {
             // Construct URI including our request parameters.
             final URIBuilder uriBuilder = new URIBuilder(url)
@@ -288,13 +287,13 @@ public class HttpClientRestClient implements RestClient {
             }
 
             // Build Get Request
-            final HttpGet get = new HttpGet(uriBuilder.build());
+            final ClassicHttpRequest get = new HttpGet(uriBuilder.build());
 
             // Debug logging
-            logger.info("Executing request {}", get.getRequestLine());
+            logger.info("Executing request {}", get.getRequestUri());
 
             // Execute and return
-            return httpClient.execute(get, responseHandler, httpClientContext);
+            return httpClient.execute(get, httpClientContext, responseHandler);
         } catch (final ClientProtocolException | SocketException | URISyntaxException | SSLHandshakeException connectionException) {
             // Signals that an error occurred while attempting to connect a
             // socket to a remote address and port.  Typically, the connection

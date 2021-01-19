@@ -26,13 +26,13 @@ import org.sourcelab.hkp.parser.SearchIndexResponseParser;
 import org.sourcelab.hkp.request.GetRequest;
 import org.sourcelab.hkp.request.Request;
 import org.sourcelab.hkp.request.SearchRequest;
-import org.sourcelab.hkp.response.get.PgpPublicKey;
-import org.sourcelab.hkp.response.search.SearchIndexResponse;
-import org.sourcelab.hkp.rest.HttpClientRestClient;
-import org.sourcelab.hkp.rest.RestClient;
-import org.sourcelab.hkp.rest.RestResponse;
 import org.sourcelab.hkp.response.ErrorResponse;
 import org.sourcelab.hkp.response.Result;
+import org.sourcelab.hkp.response.get.PgpPublicKey;
+import org.sourcelab.hkp.response.search.SearchIndexResponse;
+import org.sourcelab.hkp.rest.HttpClient5RestClient;
+import org.sourcelab.hkp.rest.RestClient;
+import org.sourcelab.hkp.rest.RestResponse;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -66,7 +66,7 @@ public class HkpClient implements AutoCloseable {
     public HkpClient(final ConfigurationBuilder configurationBuilder) {
         this(
             configurationBuilder,
-            new HttpClientRestClient()
+            new HttpClient5RestClient()
         );
     }
 
