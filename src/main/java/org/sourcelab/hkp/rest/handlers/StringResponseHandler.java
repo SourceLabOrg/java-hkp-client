@@ -17,27 +17,37 @@
 
 package org.sourcelab.hkp.rest.handlers;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ResponseHandler;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 /**
  * Returns response as a string.
  */
-public class StringResponseHandler implements ResponseHandler<String> {
+public class StringResponseHandler implements HttpClientResponseHandler<String> {
+    private static final Logger logger = LoggerFactory.getLogger(StringResponseHandler.class);
+
     @Override
-    public String handleResponse(final HttpResponse response) throws IOException {
+    public String handleResponse(final ClassicHttpResponse response) throws IOException {
+        try {
+            final HttpEntity entity = response.getEntity();
+            final String responseStr;
+            responseStr = entity != null ? EntityUtils.toString(entity) : null;
 
-        final HttpEntity entity = response.getEntity();
-        final String responseStr = entity != null ? EntityUtils.toString(entity) : null;
+            // Fully consume entity.
+            EntityUtils.consume(entity);
 
-        // Fully consume entity.
-        EntityUtils.consume(entity);
-
-        // Construct return object
-        return responseStr;
+            // Construct return object
+            return responseStr;
+        } catch (final ParseException exception) {
+            logger.error("Failed to read entity: {}", exception.getMessage(), exception);
+            throw new RuntimeException("Failed to read entity", exception);
+        }
     }
 }

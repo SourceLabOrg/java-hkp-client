@@ -6,7 +6,7 @@
 
     <groupId>org.sourcelab</groupId>
     <artifactId>java-hkp-client</artifactId>
-    <version>0.1.1-SNAPSHOT</version>
+    <version>0.2.0</version>
 
     <!-- Require Maven 3.3.9 -->
     <prerequisites>
@@ -48,7 +48,7 @@
         <maven.compiler.target>8</maven.compiler.target>
 
         <!-- Http Components version -->
-        <http-components.version>4.5.13</http-components.version>
+        <http-components.version>5.0.3</http-components.version>
 
         <!-- Specify which Checkstyle ruleset to use -->
         <checkstyle.ruleset>build/checkstyle.xml</checkstyle.ruleset>
@@ -75,8 +75,8 @@
     <dependencies>
         <!-- Http Client -->
         <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
             <version>${http-components.version}</version>
         </dependency>
 
